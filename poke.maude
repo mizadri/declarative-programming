@@ -1,0 +1,436 @@
+fmod CONJUNTOOBJETOS is
+	pr NAT .
+	
+	sort Objeto .
+	
+	sort Baya .
+	op Baya : -> Baya [ctor] .
+	subsort Baya < Objeto .
+	
+	sort Revivir . 
+	op Revivir : -> Revivir [ctor] .
+	subsort Revivir < Objeto .
+	
+	sort Pokeball .
+	op Pokeball : -> Pokeball [ctor] .
+	subsort  Pokeball < Objeto .
+	
+	sort Huevo .
+	op Huevo : Nat -> Huevo [ctor] .
+	subsort Huevo < Objeto .
+	
+	sort ConjuntoObjetos .
+	subsort Objeto < ConjuntoObjetos .
+	
+	op cv : -> ConjuntoObjetos [ctor] .
+	op _ _ : ConjuntoObjetos ConjuntoObjetos -> ConjuntoObjetos [ctor assoc comm id: cv] .
+	
+	
+	var PASOS : Nat .
+	var HUEVO : Huevo .
+	var OBJETOS : ConjuntoObjetos .
+	var O : Objeto .
+	
+	op decrementaPasos : Huevo -> Huevo .
+	eq decrementaPasos(Huevo(0)) = Huevo(0) .
+	eq decrementaPasos(Huevo(s(PASOS))) = Huevo(PASOS) .
+	
+	op decrementaHuevos : ConjuntoObjetos -> ConjuntoObjetos .
+	eq decrementaHuevos(HUEVO OBJETOS) = decrementaPasos(HUEVO) decrementaHuevos(OBJETOS) .
+	eq decrementaHuevos(OBJETOS) = OBJETOS .
+	
+	op size : ConjuntoObjetos -> Nat .
+	eq size(cv) = 0 .
+	eq size(O OBJETOS) = s(size(OBJETOS)) .
+	
+endfm
+
+fmod POSICION is
+	pr NAT .
+	
+	sort Posicion .
+	op posicion(_,_) : Nat Nat -> Posicion [ctor] .
+	
+	vars X Y MAX : Nat .
+	
+	op avanzaizquierda : Posicion Nat -> Posicion .
+	eq avanzaizquierda(posicion(0,Y),MAX) = posicion(MAX,Y) .
+	eq avanzaizquierda(posicion(s(X),Y),MAX) = posicion(X,Y) .
+	
+	op avanzaderecha : Posicion Nat -> Posicion .
+	eq avanzaderecha(posicion(MAX,Y),MAX) = posicion(0,Y) .
+	eq avanzaderecha(posicion(X,Y),MAX) = posicion(s(X),Y) .
+	
+	op avanzaabajo : Posicion Nat -> Posicion .
+	eq avanzaabajo(posicion(X,0),MAX) = posicion(X,MAX) .
+	eq avanzaabajo(posicion(X,s(Y)),MAX) = posicion(X,Y) .
+	
+	op avanzaarriba : Posicion Nat -> Posicion .
+	eq avanzaarriba(posicion(X,MAX),MAX) = posicion(X,0) .
+	eq avanzaarriba(posicion(X,Y),MAX) = posicion(X,s(Y)) .
+
+
+endfm
+
+fmod POKEPARADA is
+	pr NAT .
+	pr POSICION .
+	pr CONJUNTOOBJETOS .
+	
+	
+	
+	sort Pokeparada .
+	op pokeparada : Posicion ConjuntoObjetos -> Pokeparada [ctor] .
+endfm
+
+fmod POKEMAUDE is
+	pr NAT .
+	pr STRING .
+	pr POSICION .
+	
+	sort Tipo .
+	op agua : -> Tipo [ctor] .
+	op fuego : -> Tipo [ctor] .
+	op tierra : -> Tipo [ctor] .
+	
+	sort Pokemaude .
+	*** (Posicion, ID, Nombre, Poder, Tipo, Debilitado?)
+	op pokemaude : Posicion Nat String Nat Tipo Bool -> Pokemaude [ctor] .
+	
+	vars N N' : Nat .
+	var P : Posicion .
+	var Nom : String .
+	var T : Tipo .
+	var D : Bool .
+	
+	op getPoder : Pokemaude	-> Nat .
+	eq getPoder(pokemaude(P,N,Nom,N',T,D)) = N' .
+	
+	
+endfm
+
+fmod POKELISTA is
+	pr NAT .
+	pr POKEMAUDE .
+	
+	sorts Pokelista Pokelista? .
+	subsort Pokemaude < Pokelista < Pokelista? .
+	op lv : -> Pokelista [ctor] .
+	op _ _ : Pokelista? Pokelista? -> Pokelista? [ctor assoc id: lv] .
+	
+	vars Pok Pok' : Pokemaude .
+	vars L L' : Pokelista? .
+	
+	cmb Pok Pok' L : Pokelista
+		if getPoder(Pok) >= getPoder(Pok') 
+			/\ Pok' L : Pokelista .
+			
+	op insertaEnPokelista : Pokelista Pokemaude -> Pokelista .
+	eq insertaEnPokelista(lv, Pok) = Pok .
+	eq insertaEnPokelista(Pok L, Pok') = if getPoder(Pok) >= getPoder(Pok')
+                           then Pok insertaEnPokelista(L, Pok')
+                           else Pok' Pok L
+                           fi .
+                           
+    op tam : Pokelista? -> Nat .
+	eq tam(lv) = 0 .
+	eq tam(Pok L) = s(tam(L)) .
+
+endfm
+
+fmod POKEDEX is
+	pr NAT .
+	pr STRING .
+	pr POKEMAUDE .
+
+	
+*** 1 |-> ["a", agua]
+***	2 |-> "desconocido"
+***	3 |-> "desconocido"
+
+	sort TipoDEX .
+	op <_,_> : String Tipo -> TipoDEX [ctor] .
+	op desconocido : -> TipoDEX [ctor] .
+	
+	sort EntradaPokedex .
+	op [_](_) : Nat TipoDEX -> EntradaPokedex [ctor] .
+	
+	sort Pokedex .
+	subsort EntradaPokedex < Pokedex .
+	op plv : -> Pokedex [ctor] .
+	op _ _ : Pokedex Pokedex -> Pokedex [ctor assoc id: plv] .
+	
+	var PkDEX PkD : Pokedex .
+	vars ID PWR : Nat .
+	var POS : Posicion .
+	var NOMBRE : String .
+	var TIPO : Tipo .
+	var DEBILITADO? : Bool .
+	
+	op insertaEnPokedex : Pokedex Pokemaude -> Pokedex .
+	eq insertaEnPokedex( PkDEX [ID](desconocido) PkD , pokemaude(POS,ID,NOMBRE,PWR,TIPO,DEBILITADO?)) = PkDEX [ID](< NOMBRE, TIPO >) PkD .
+	
+endfm
+
+fmod ENTRENADOR is
+	pr NAT .
+	pr POSICION .
+	pr POKEDEX .
+	pr POKELISTA .
+	pr CONJUNTOOBJETOS .
+	
+	sort Equipo .
+	op valor : -> Equipo [ctor] .
+	op instinto : -> Equipo [ctor] .
+	op justicia : -> Equipo [ctor] .
+	
+	sort Entrenador .
+	op entrenador : Posicion Nat Nat Pokedex Pokelista ConjuntoObjetos Equipo -> Entrenador .
+	
+	vars EXP PWR XPMAX : Nat .
+	
+	op incrementaExp : Nat Nat Nat -> Nat .
+	ceq incrementaExp(EXP,PWR,XPMAX) = EXP + PWR if EXP + PWR <= XPMAX .
+	eq incrementaExp(EXP,PWR,XPMAX) = XPMAX [owise] .
+	
+endfm
+	*** pokemaude(posicion, ID, Nombre, Poder, Tipo, Debilitado?)
+	*** entrenador(posicion, id, exp, pokedex, pokelista, pokeobjetos, equipo)
+	
+	
+
+mod POKEMUNDO is
+	pr ENTRENADOR .
+	pr POKEMAUDE .
+	pr POKEPARADA .
+	
+	sorts ConjuntoElementos Elemento .
+	subsort Entrenador Pokemaude Pokeparada < Elemento .
+	subsort Elemento < ConjuntoElementos .
+	
+	op ecv : -> ConjuntoElementos [ctor] .
+	op _^_ : ConjuntoElementos ConjuntoElementos -> ConjuntoElementos [ctor assoc comm id: ecv] .
+
+	sort Mundo .
+	*** (ConjuntoElementos, XMAX, YMAX, XPMAX)
+	op mundo : ConjuntoElementos Nat Nat Nat -> Mundo .
+	
+	var POS : Posicion .
+	vars PokEXP PokID ID EXP PWR XMAX YMAX XPMAX PASOS : Nat .
+	var TIPO : Tipo .
+	var DEBILITADO? : Bool .
+	var NOMBRE : String .
+	var PKDEX : Pokedex .
+	var PKLISTA : Pokelista .
+	var OBJETOS OBJETOS' : ConjuntoObjetos .
+	var OBJETO OBJETO' : Objeto .
+	var E : ConjuntoElementos .
+	var EQUIPO : Equipo .
+	var PBALL : Pokeball .
+	var BAYA : Baya .
+	var HUEVO : Huevo .
+	var REVIVIR : Revivir .
+		
+	*** Si atrapo pokemon, sigue estando en el mundo?
+	crl [atrapa-pokemaude] :
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS PBALL,EQUIPO)
+			^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,incrementaExp(EXP,PWR,XPMAX),
+			insertaEnPokedex(PKDEX,pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?)),
+			insertaEnPokelista(PKLISTA,pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?)),OBJETOS,EQUIPO)
+			,XMAX,YMAX,XPMAX)
+	if EXP > PWR .
+	
+		crl [no-atrapa-pokemaude] :
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS PBALL,EQUIPO)
+			^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO)
+			^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	if EXP <= PWR .
+	
+	crl [atrapa-pokemaude-baya] :
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS PBALL BAYA,EQUIPO)
+			^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,incrementaExp(EXP,PWR,XPMAX),
+			insertaEnPokedex(PKDEX,pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?)),
+			insertaEnPokelista(PKLISTA,pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?)),OBJETOS,EQUIPO)
+			,XMAX,YMAX,XPMAX)
+	if 2 * EXP > PWR .
+	
+	crl [no-atrapa-pokemaude-baya] :
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS PBALL BAYA,EQUIPO)
+			^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO)
+			^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	if 2 * EXP <= PWR .
+	
+	rl [avanza-entrenador-arriba] : 
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(avanzaarriba(POS,YMAX),ID,EXP,PKDEX,PKLISTA,decrementaHuevos(OBJETOS),EQUIPO) ,XMAX,YMAX,XPMAX) . 
+
+	rl [avanza-entrenador-abajo] : 
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(avanzaabajo(POS,YMAX),ID,EXP,PKDEX,PKLISTA,decrementaHuevos(OBJETOS),EQUIPO) ,XMAX,YMAX,XPMAX) . 	
+
+	rl [avanza-entrenador-izquierda] : 
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(avanzaizquierda(POS,XMAX),ID,EXP,PKDEX,PKLISTA,decrementaHuevos(OBJETOS),EQUIPO) ,XMAX,YMAX,XPMAX) . 
+	
+	rl [avanza-entrenador-derecha] : 
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(avanzaderecha(POS,XMAX),ID,EXP,PKDEX,PKLISTA,decrementaHuevos(OBJETOS),EQUIPO) ,XMAX,YMAX,XPMAX) . 
+	
+	rl [avanza-pokemaude-arriba] :
+	mundo( E ^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ pokemaude(avanzaarriba(POS,YMAX),PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX) .
+	
+	rl [avanza-pokemaude-abajo] :
+	mundo( E ^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ pokemaude(avanzaabajo(POS,YMAX),PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX) .
+	
+	rl [avanza-pokemaude-izquierda] :
+	mundo( E ^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ pokemaude(avanzaizquierda(POS,XMAX),PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX) .
+	
+	rl [avanza-pokemaude-derecha] :
+	mundo( E ^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ pokemaude(avanzaderecha(POS,XMAX),PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX) .
+	
+	rl [eclosiona-huevo-diggleton] : 
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS Huevo(0) ,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,EXP,
+					insertaEnPokedex(PKDEX,pokemaude(POS,1,"Digletton",10,tierra,false)),
+					insertaEnPokelista(PKLISTA,pokemaude(POS,1,"Digletton",10,tierra,false)),
+					OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX) . 
+					
+	rl [eclosiona-huevo-magikarpa] : 
+	mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS Huevo(0) ,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,EXP,
+					insertaEnPokedex(PKDEX,pokemaude(POS,3,"Magikarpa",10,agua,false)),
+					insertaEnPokelista(PKLISTA,pokemaude(POS,3,"Magikarpa",10,agua,false)),
+					OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX) .
+	
+	rl [recoge-2objetos] : 
+	mundo( E ^ pokeparada(POS,OBJETOS' OBJETO OBJETO' ) ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO),XMAX,YMAX,XPMAX)
+	=> mundo( E ^ pokeparada(POS,OBJETOS') ^ entrenador(POS,ID,incrementaExp(EXP,1,XPMAX),PKDEX,PKLISTA,OBJETOS OBJETO OBJETO',EQUIPO),XMAX,YMAX,XPMAX) .	
+					
+	rl [recoge-objeto] :
+	mundo( E ^ pokeparada(POS,OBJETOS' OBJETO) ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ pokeparada(POS,OBJETOS') ^ entrenador(POS,ID,incrementaExp(EXP,1,XPMAX),PKDEX,PKLISTA,OBJETOS OBJETO,EQUIPO) ,XMAX,YMAX,XPMAX) .
+	
+	rl [revivir-pokemaude] : mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA pokemaude(POS,PokID,NOMBRE,PWR,TIPO,true),OBJETOS REVIVIR,EQUIPO) ,XMAX,YMAX,XPMAX)
+	=> mundo( E ^ entrenador(POS,ID,EXP,PKDEX,PKLISTA pokemaude(POS,PokID,NOMBRE,PWR,TIPO,false),OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX) .
+		
+endm
+
+load model-checker.maude
+
+mod PROP is 
+	pr POKEMUNDO .
+	pr SATISFACTION .	
+
+	subsort Mundo < State .
+	
+	var POS : Posicion .
+	vars PokEXP PokID ID EXP PWR XMAX YMAX XPMAX PASOS : Nat .
+	var TIPO : Tipo .
+	var DEBILITADO? : Bool .
+	var NOMBRE : String .
+	var PKDEX : Pokedex .
+	var PKLISTA : Pokelista .
+	var OBJETOS OBJETOS' : ConjuntoObjetos .
+	var OBJETO OBJETO' : Objeto .
+	var E : ConjuntoElementos .
+	var EQUIPO : Equipo .
+	var PBALL : Pokeball .
+	var BAYA : Baya .
+	var HUEVO : Huevo .
+	var REVIVIR : Revivir .
+	
+	op hayPokemaudeEn : Posicion -> Prop [ctor] .
+	eq mundo( E ^ pokemaude(POS,PokID,NOMBRE,PWR,TIPO,DEBILITADO?) ,XMAX,YMAX,XPMAX) |= hayPokemaudeEn(POS) = true .
+	
+	op hayPokeparadaEn : Posicion -> Prop [ctor] .
+	eq mundo( E ^ pokeparada(POS,OBJETOS),XMAX,YMAX,XPMAX) |= hayPokeparadaEn(POS) = true .
+	
+	op hayParadaSinObjetos : -> Prop [ctor] .
+	eq mundo( E ^ pokeparada(POS,cv),XMAX,YMAX,XPMAX) |= hayParadaSinObjetos = true .
+	
+	op alguienConMaxXP : -> Prop [ctor] .
+	eq mundo( E ^ entrenador(POS,ID,XPMAX,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX) |= alguienConMaxXP = true .
+	
+	op tieneAlgunPokemaude : Nat -> Prop [ctor] .
+	ceq mundo( E ^ entrenador(POS,ID,XPMAX,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX) |= tieneAlgunPokemaude(ID) = true 
+		if tam(PKLISTA) > 0 .
+	
+	op tieneAlgunItem : Nat -> Prop [ctor] .
+	ceq mundo( E ^ entrenador(POS,ID,XPMAX,PKDEX,PKLISTA,OBJETOS,EQUIPO) ,XMAX,YMAX,XPMAX) |= tieneAlgunItem(ID) = true 
+		if size(OBJETOS) > 0 .
+
+endm
+
+mod POKETESTING is
+	pr PROP .
+	pr MODEL-CHECKER .
+	pr LTL-SIMPLIFIER .
+
+	ops entrenador1 entrenador2 : -> Entrenador .
+	eq entrenador1 = entrenador( posicion(1,1) ,1,5, [1](desconocido) [2](desconocido) [3](desconocido), lv, cv, instinto) .
+	eq entrenador2 = entrenador( posicion(2,2) ,2,5, [1](desconocido) [2](desconocido) [3](desconocido), lv, cv, valor) .
+	
+	ops pokemaude1 pokemaude2 : -> Pokemaude .
+	eq pokemaude1 = pokemaude( posicion(0,1),2,"Arcaperrete",6,fuego,false) .
+	eq pokemaude2 = pokemaude( posicion(1,2),3,"Magikarpa",3,agua,false) .
+	
+	op pokeparada1 : -> Pokeparada .
+	eq pokeparada1 = pokeparada( posicion(1,1), Huevo(5) Pokeball Pokeball Baya Revivir ) .
+	
+	op mundo1 : -> Mundo .
+	eq mundo1 = mundo( entrenador1 ^ entrenador2 ^ pokemaude1 ^	pokemaude2 ^ pokeparada1 ,2,2,10) .
+endm
+
+
+
+*** Ejercicio 4
+
+*** i) Es posible que uno de los entrenadores capture el Arcaperrete:	
+*** search [1] mundo1 =>* mundo(CE:ConjuntoElementos ^ entrenador(P:Posicion,ID:Nat,XP:Nat, [1](TD:TipoDEX) [2](< "Arcaperrete" , fuego >) [3](TD':TipoDEX),PKL:Pokelista,CO:ConjuntoObjetos,T:Equipo),2,2,10) .
+
+*** ii) si es posible que no lo capture ninguno:
+*** search [1] mundo1 =>* mundo(CE:ConjuntoElementos ^ entrenador(P:Posicion,ID:Nat,XP:Nat, [1](TD:TipoDEX) [2](desconocido) [3](TD':TipoDEX),PKL:Pokelista,CO:ConjuntoObjetos,T:Equipo) ^ entrenador(P':Posicion,ID':Nat,XP':Nat, [1](TDD:TipoDEX) [2](desconocido) [3](TDD':TipoDEX),PKL':Pokelista,CO':ConjuntoObjetos,T':Equipo),2,2,10) .
+
+*** iii) si alguien puede completar la pokédex:
+*** search [1] mundo1 =>* mundo(CE:ConjuntoElementos ^ entrenador(P:Posicion,ID:Nat,XP:Nat, [1](< "Digletton",tierra >) [2](< "Arcaperrete",fuego >) [3](< "Magikarpa",agua >),PKL:Pokelista,CO:ConjuntoObjetos,T:Equipo),2,2,10) .
+*** PD: Tarda un rato, lo encuentra en el estado 4122028.
+
+*** Ejercicio 5
+
+*** a) En algún momento hay una poképarada sin objetos:
+
+*** red modelCheck(mundo1, <> hayParadaSinObjetos ) .
+
+*** Resultado: Se busca si en algun momento hay una parada sin objetos pero se obtiene un 
+***	contraejemplo porque la busqueda encuentra un ciclo en el que la parada contiene 
+*** un objeto y todo el rato se aplica otra regla que no sea recoger objeto.
+
+*** b) En algún momento algún entrenador captura un pokémaude:
+
+*** red modelCheck(mundo1, <> tieneAlgunPokemaude(1) ) .
+
+*** Resultado: Devuelve un contraejemplo, ya que encuentra una rama del arbol estados en la que el entrenador 1 no ha capturado nada, y el otro si.
+*** No se cumple la propiedad en todos los caminos ya que puede haber ciclos.
+
+*** c) Si un entrenador captura un pokémaude lo conserva indefinidamente:
+
+*** red modelCheck(mundo1, <> (tieneAlgunPokemaude(1) -> [] tieneAlgunPokemaude(1)) ) .
+
+*** Resultado: La propiedad se cumple (devuelve True), 
+*** ya que no existe manera de que un pokemaude escape del entrenador.
+
+
+*** d) Si hay una poképarada en una posición entonces siempre estará en esa posición:
+
+*** red modelCheck(mundo1, [] hayPokeparadaEn(posicion(1,1)) ) .
+
+*** Resultado: La busqueda nunca acaba porque se deben explorar muchisimos estados,
+*** por lo que se deduce que no puede encontrar un contraejemplo y la propiedad se cumple.
